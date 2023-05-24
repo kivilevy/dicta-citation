@@ -1,4 +1,3 @@
-
 export const validateInput = (req, res, next) => {
     const {body: {text, email} } = req;
 

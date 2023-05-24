@@ -6,7 +6,8 @@ const BASE_URL = 'https://talmudfinder-2-0.loadbalancer.dicta.org.il/TalmudFinde
 const PSUKIM_URL = `${BASE_URL}/markpsukim`;
 const GROUPS_URL =` ${BASE_URL}/parsetogroups`;
 
-export const processInput = async (req, res) => {
+export const processText = async (req, res) => {
+    res.status(200).send({ message: 'Text is processing, you will receive an email when it is done.' });
     const { body: { text }} = req;
     //const filePath = 'C:/pdf/results.txt'; 
 
@@ -16,9 +17,9 @@ export const processInput = async (req, res) => {
         let formattedText = insertFootnotes(text, results);
         formattedText = formattedText.replace(/<b>|<\/b>/g, '');
         //fs.writeFile(filePath, formattedText, {flag:'w+'},() =>{});
-        res.send(formattedText);
+        //todo: send results via email
     } catch (error) {
-        console.error('Error processing text:', error);
+        //todo: send error via email
     }
 }
 
