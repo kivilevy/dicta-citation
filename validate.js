@@ -2,10 +2,9 @@ export const validateInput = (req, res, next) => {
     const {body: {text, email} } = req;
 
     if (!minHebrewWords(text))
-        return res.status(400).send({ message: 'Text must contain at least 3 Hebrew words.' });
+        return res.status(400).send({message: 'Text must contain at least 3 Hebrew words.'});
     if (!validEmail(email)) 
-        return res.status(400).send({ message: 'Invalid email format. Please enter a valid email.' });
-    
+        return res.status(400).send({message: 'Invalid email format. Please enter a valid email.'});
     next();
 }
 

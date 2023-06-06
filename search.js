@@ -1,25 +1,23 @@
-//import { sendEmail } from "./mail.js";
-//import fs from 'fs';
+import { sendEmail } from './mail.js';
 
 const CHUNK_SIZE = 8000;
 const BASE_URL = 'https://talmudfinder-2-0.loadbalancer.dicta.org.il/TalmudFinder/api';
 const PSUKIM_URL = `${BASE_URL}/markpsukim`;
 const GROUPS_URL =` ${BASE_URL}/parsetogroups`;
 
-export const processText = async (req, res) => {
-    res.status(200).send({ message: 'Text is processing, you will receive an email when it is done.' });
-    const { body: { text }} = req;
-    //const filePath = 'C:/pdf/results.txt'; 
-
+export const processAndFormatText = async (req, res) => {
+    res.send('Your request is being processed. Results will be delivered to your email upon completion');
+    const {body: {text, email}} = req;
+   
     try {
         const chunks = splitText(text);
         const results = await fullTextResults(chunks, req.body);
         let formattedText = insertFootnotes(text, results);
         formattedText = formattedText.replace(/<b>|<\/b>/g, '');
-        //fs.writeFile(filePath, formattedText, {flag:'w+'},() =>{});
-        //todo: send results via email
+        sendEmail(formattedText, email);
     } catch (error) {
-        //todo: send error via email
+        const message = 'an error occurred while processing your request. Please try again later.';
+        sendEmail(message, email);
     }
 }
 
@@ -87,10 +85,10 @@ const insertFootnotes = (text, results) => {
         const endIChar = result.endIChar;
         newText += text.slice(currentPos, endIChar) + `[${footnoteNumber}]`;
         currentPos = endIChar;
-        footnotes += `\n[${footnoteNumber}] ` + result.matches.map(match => `${match.verseDispHeb}, matchedText: ${match.matchedText}`).join(', ');
+        footnotes += `\n[${footnoteNumber}] ` + result.matches.map(match => `${match.matchedText} (${match.verseDispHeb})`).join(', ');
         footnoteNumber++;
     });
     newText += text.slice(currentPos);  // Add the remaining text
-    newText += "\n\nFootnotes: " + footnotes; 
+    newText += "\n\nאזכורים: " + footnotes; 
     return newText;
 }

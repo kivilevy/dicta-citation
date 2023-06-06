@@ -1,28 +1,46 @@
-import nodemailer from 'nodemailer';
+import {SESClient, SendEmailCommand} from "@aws-sdk/client-ses";
 
-const transporter = nodemailer.createTransport({
-    host: 'your_smtp_server',
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: 'Dicta_email',
-      pass: 'password',
-    },
-  });
-  
-export const sendEmail = async (email, results) => {
-    try {
-      const mailOptions = {
-        from: 'Dicta_email',
-        to: email,
-        subject: 'Citation Finder Results',
-        text: JSON.stringify(results, null, 2),
-      };
-  
-      await transporter.sendMail(mailOptions);
-      console.log(`Email sent to ${email}`);
-    } catch (error) {
-      console.error('Error sending email:', error);
+const fromAddress = "dicta@dicta.org.il";
+const REGION = "us-east-1";
+let sesClient;
+
+const initcredentials = () => {
+  if (sesClient)
+    return;  
+  sesClient = new SESClient({
+    region: REGION, 
+    credentials: {
+        accessKeyId: process.env.ACCESS_KEY_ID,
+        secretAccessKey: process.env.SECRET_ACCESS_KEY
     }
+  });
+}
+
+const createSendEmailCommand = (toAddress, fromAddress, results) => {
+  return new SendEmailCommand({
+    Destination: {
+      ToAddresses: [
+        toAddress
+      ],
+    },
+    Message: {
+      Body: {
+        Text: {
+          Charset: "UTF-8",
+          Data: results,
+        },
+      },
+      Subject: {
+        Charset: "UTF-8",
+        Data: "Dicta search results",
+      },
+    },
+    Source: fromAddress
+  });
 };
-  
+
+export const sendEmail = (results, toAddress) => {
+  initcredentials();  
+  const command = createSendEmailCommand(toAddress, fromAddress, results);
+  sesClient.send(command);
+}
