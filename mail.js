@@ -1,6 +1,6 @@
 import {SESClient, SendEmailCommand} from "@aws-sdk/client-ses";
 
-const fromAddress = "dicta@dicta.org.il";
+const FROM_ADDRESS = "dicta@dicta.org.il";
 const REGION = "us-east-1";
 let sesClient;
 
@@ -41,6 +41,6 @@ const createSendEmailCommand = (toAddress, fromAddress, results) => {
 
 export const sendEmail = (results, toAddress) => {
   initcredentials();  
-  const command = createSendEmailCommand(toAddress, fromAddress, results);
+  const command = createSendEmailCommand(toAddress, FROM_ADDRESS, results);
   sesClient.send(command);
 }
