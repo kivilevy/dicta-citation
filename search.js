@@ -6,8 +6,9 @@ const PSUKIM_URL = `${BASE_URL}/markpsukim`;
 const GROUPS_URL =` ${BASE_URL}/parsetogroups`;
 
 export const processAndFormatText = async (req, res) => {
-    res.send('Your request is being processed. Results will be delivered to your email upon completion');
-    const {body: {text, email}} = req;
+    res.send('Your request is being processed.\
+       Results will be delivered to your email upon completion');
+    const { body: { text, email }} = req;
    
     try {
         const chunks = splitText(text);
@@ -16,7 +17,8 @@ export const processAndFormatText = async (req, res) => {
         formattedText = formattedText.replace(/<b>|<\/b>/g, '');
         sendEmail(formattedText, email);
     } catch (error) {
-        const message = 'an error occurred while processing your request. Please try again later.';
+        const message = 'an error occurred while processing your request.\
+           Please try again later.';
         sendEmail(message, email);
     }
 }
@@ -32,7 +34,8 @@ const splitText = (text) => {
       const lastNewline = text.lastIndexOf("\n", end);
       const lastBreak = Math.max(lastPeriod, lastNewline);  
       if (lastBreak > start  && end < text.length) end = lastBreak + 1;
-      else end = Math.min(end, text.length) //No break found || remaining text is short  
+      //No break found or the remaining text is short 
+      else end = Math.min(end, text.length)  
       chunks.push(text.slice(start, end));
       start = end;
       end = start + CHUNK_SIZE;
@@ -49,7 +52,8 @@ const searchChunk = async (chunk, {smin, smax, fdirectonly}) => {
     for (const mode of modes) {
         const body = {mode, thresh: 0, fdirectonly, data: chunk};
         const {downloadId, results} =
-            await fetch(PSUKIM_URL,{method: 'POST', body: JSON.stringify(body), headers}).then(d => d.json());
+            await fetch(PSUKIM_URL,{method: 'POST', body: JSON.stringify(body), headers})
+                .then(d => d.json());
         psukimResults.push(...results);
         if (results.length) psukimDownloadId = downloadId;
     }
@@ -66,7 +70,7 @@ const fullTextResults = async (chunks, reqBody) => {
 
     for (const chunk of chunks) {
         const chunkResults = await searchChunk(chunk, reqBody);
-        //adjusting endIchar of the next chunk to cuntinue the prev chunk 
+        //adjusting endIchar of the next chunk to cuntinue the previous chunk 
         chunkResults.forEach((result) => result.endIChar += currentIndex);  
         fullResults.push(...chunkResults);
         currentIndex += chunk.length;
@@ -79,16 +83,18 @@ const insertFootnotes = (text, results) => {
     let currentPos = 0;
     let footnoteNumber = 1;
     let footnotes = "";
-
-    const sortedResults = results.sort((a, b) => a.endIChar - b.endIChar);  // Sort results by endIChar
+     // Sort results by endIChar
+    const sortedResults = results.sort((a, b) => a.endIChar - b.endIChar); 
     sortedResults.forEach((result) => {
         const endIChar = result.endIChar;
         newText += text.slice(currentPos, endIChar) + `[${footnoteNumber}]`;
         currentPos = endIChar;
-        footnotes += `\n[${footnoteNumber}] ` + result.matches.map(match => `${match.matchedText} (${match.verseDispHeb})`).join(', ');
+        footnotes += `\n[${footnoteNumber}] ` + result.matches
+            .map(match => `${match.matchedText} (${match.verseDispHeb})`).join(', ');
         footnoteNumber++;
     });
-    newText += text.slice(currentPos);  // Add the remaining text
+     // Add the remaining text
+    newText += text.slice(currentPos); 
     newText += "\n\nאזכורים: " + footnotes; 
     return newText;
 }
