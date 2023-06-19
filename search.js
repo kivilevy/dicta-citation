@@ -1,11 +1,11 @@
-import { sendEmail } from './mail.js';
+import { resultsEmail, errorMessageEmail } from './mail.js';
 
 const CHUNK_SIZE = 8000;
 const BASE_URL = 'https://talmudfinder-2-0.loadbalancer.dicta.org.il/TalmudFinder/api';
 const PSUKIM_URL = `${BASE_URL}/markpsukim`;
-const GROUPS_URL =` ${BASE_URL}/parsetogroups`;
+const GROUPS_URL = `${BASE_URL}/parsetogroups`;
 
-export const processAndFormatText = async (req, res) => {
+export const handleSearchAndResults = async (req, res) => {
     res.send('Your request is being processed.\
        Results will be delivered to your email upon completion');
     const { body: { text, email }} = req;
@@ -13,13 +13,11 @@ export const processAndFormatText = async (req, res) => {
     try {
         const chunks = splitText(text);
         const results = await fullTextResults(chunks, req.body);
-        let formattedText = insertFootnotes(text, results);
-        formattedText = formattedText.replace(/<b>|<\/b>/g, '');
-        sendEmail(formattedText, email);
+        let footnotedText = insertFootnotes(text, results);
+        footnotedText = footnotedText.replace(/<b>|<\/b>/g, '');
+        resultsEmail(footnotedText, email);
     } catch (error) {
-        const message = 'an error occurred while processing your request.\
-           Please try again later.';
-        sendEmail(message, email);
+        errorMessageEmail(email);
     }
 }
 
@@ -29,13 +27,12 @@ const splitText = (text) => {
     let end = CHUNK_SIZE; 
 
     while (start < text.length) {
-      // Avoid splitting midsentence
+      // Avoid splitting in the middle of a sentence
       const lastPeriod = text.lastIndexOf(".", end);   
       const lastNewline = text.lastIndexOf("\n", end);
       const lastBreak = Math.max(lastPeriod, lastNewline);  
       if (lastBreak > start  && end < text.length) end = lastBreak + 1;
-      //No break found or the remaining text is short 
-      else end = Math.min(end, text.length)  
+      else end = Math.min(end, text.length);
       chunks.push(text.slice(start, end));
       start = end;
       end = start + CHUNK_SIZE;
@@ -65,17 +62,17 @@ const searchChunk = async (chunk, {smin, smax, fdirectonly}) => {
 }   
 
 const fullTextResults = async (chunks, reqBody) => {
-    const fullResults = [];
+    const allResults = [];
     let currentIndex = 0;
 
     for (const chunk of chunks) {
         const chunkResults = await searchChunk(chunk, reqBody);
-        //adjusting endIchar of the next chunk to cuntinue the previous chunk 
+        // Adjust endIChar number to continue the last endIChar of the previous chunk 
         chunkResults.forEach((result) => result.endIChar += currentIndex);  
-        fullResults.push(...chunkResults);
+        allResults.push(...chunkResults);
         currentIndex += chunk.length;
     }
-    return fullResults;    
+    return allResults;    
 }
 
 const insertFootnotes = (text, results) => {
@@ -83,7 +80,7 @@ const insertFootnotes = (text, results) => {
     let currentPos = 0;
     let footnoteNumber = 1;
     let footnotes = "";
-     // Sort results by endIChar
+    // Sort results by endIChar
     const sortedResults = results.sort((a, b) => a.endIChar - b.endIChar); 
     sortedResults.forEach((result) => {
         const endIChar = result.endIChar;
@@ -93,7 +90,7 @@ const insertFootnotes = (text, results) => {
             .map(match => `${match.matchedText} (${match.verseDispHeb})`).join(', ');
         footnoteNumber++;
     });
-     // Add the remaining text
+    // Add the remaining text
     newText += text.slice(currentPos); 
     newText += "\n\nאזכורים: " + footnotes; 
     return newText;
